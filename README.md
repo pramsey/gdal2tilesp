@@ -1,3 +1,7 @@
+# Credits
+
+* [Jorge Arévalo](https://github.com/jorgeas80) wrote this enhancement.
+
 # Introduction
 
 This enhancement to the [gdal2tiles.py script](http://www.gdal.org/gdal2tiles.html) includes the following additional features:
