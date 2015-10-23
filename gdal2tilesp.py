@@ -438,7 +438,7 @@ class Zoomify(object):
 		self.tierImageSize = []
 		self.tierImageSize.append( imagesize );
 
-		while (imagesize[0] > tilesize or imageSize[1] > tilesize ):
+		while (imagesize[0] > tilesize or imagesize[1] > tilesize ):
 			imagesize = (math.floor( imagesize[0] / 2 ), math.floor( imagesize[1] / 2) )
 			tiles = ( math.ceil( imagesize[0] / tilesize ), math.ceil( imagesize[1] / tilesize ) )
 			self.tierSizeInTiles.append( tiles )
