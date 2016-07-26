@@ -12,6 +12,11 @@ This enhancement to the [gdal2tiles.py script](http://www.gdal.org/gdal2tiles.ht
  
 Run ``gdal2tilesp.py --help`` to check all the command-line parameters of the script.
 
+## Notes
+* Generates [Leaflet](http://leafletjs.com) layer for use with the XYZ default format.   Where the `tms` parameter is set to `false`
+```
+var lyr = L.tileLayer('./{z}/{x}/{y}.png', {tms: false, opacity: 1.0, attribution: ""});
+```
 # Caveats
 
 * The ``epsg::900913`` projection code is not supported, use ``epsg:3857`` to generate a tile set in web mercator projection.
