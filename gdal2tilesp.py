@@ -207,7 +207,7 @@ class GlobalMercator(object):
 				 AUTHORITY["EPSG","9001"]]]
 	"""
 
-	def __init__(self, tileSize=256):
+	def __init__(self, tileSize=512):
 		"Initialize the TMS Global Mercator pyramid"
 		self.tileSize = tileSize
 		self.initialResolution = 2 * math.pi * 6378137 / self.tileSize
@@ -359,7 +359,7 @@ class GlobalGeodetic(object):
 	   WMS, KML    Web Clients, Google Earth  TileMapService
 	"""
 
-	def __init__(self, tileSize = 256):
+	def __init__(self, tileSize = 512):
 		self.tileSize = tileSize
 
 	def LatLonToPixels(self, lat, lon, zoom):
@@ -422,7 +422,7 @@ class Zoomify(object):
 	----------------------------------------
 	"""
 
-	def __init__(self, width, height, tilesize = 256, tileformat='jpg'):
+	def __init__(self, width, height, tilesize = 512, tileformat='jpg'):
 		"""Initialization of the Zoomify tile tree"""
 
 		self.tilesize = tilesize
@@ -462,7 +462,7 @@ class Zoomify(object):
 		"""Returns filename for tile with given coordinates"""
 
 		tileIndex = x + y * self.tierSizeInTiles[z][0] + self.tileCountUpToTier[z]
-		return os.path.join("TileGroup%.0f" % math.floor( tileIndex / 256 ),
+		return os.path.join("TileGroup%.0f" % math.floor( tileIndex / 512 ),
 			"%s-%s-%s.%s" % ( z, x, y, self.tileformat))
 
 # =============================================================================
@@ -516,8 +516,8 @@ class GDAL2Tiles(object):
 		self.output = None
 
 		# Tile format
-		self.tilesize = 256
 		
+		self.tilesize = 512
 
 		# Should we read bigger window of the input raster and scale it down?
 		# Note: Modified leter by open_input()
