@@ -2225,26 +2225,17 @@ gdal2tiles temp.vrt""" % self.input )
 		args['publishurl'] = self.options.url  # not used
 		args['copyright'] = self.options.copyright.replace('"', '\\"')
 
-		s = """
-{
-	"tilejson": "2.1.0",
+		s = """{
 	"name": "%(title)s",
 	"description": "%(htmltitle)s",
 	"version": "1.0.0",
 	"attribution": "%(copyright)s",
-	"template": "",
-	"legend": "",
-	"scheme": "xyz",
-	"tiles": ["./{z}/{x}/{y}.%(tileformat)s"],
-	"grids": [],
-	"data": [],
 	"type": "overlay",
 	"format": "%(tileformat)s",
-	"center": [%(centerlon)s, %(centerlat)s, %(beginzoom)s],
 	"minzoom": "%(minzoom)s",
 	"maxzoom": "%(maxzoom)s",
 	"bounds": "%(west)s,%(south)s,%(east)s,%(north)s",
-	"scale": "1.000000",
+	"scale": "1",
 	"profile": "mercator"
 }
 		""" % args
