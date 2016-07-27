@@ -66,7 +66,7 @@ __version__ = "$Id$"
 
 resampling_list = ('average','near','bilinear','cubic','cubicspline','lanczos','antialias')
 profile_list = ('mercator','geodetic','raster') #,'zoomify')
-webviewer_list = ('all','google','openlayers','leaflet','none')
+webviewer_list = ('all','google','openlayers','leaflet','index','none')
 queue = multiprocessing.Queue()
 zoom_limits = multiprocessing.Queue()
 
@@ -1125,6 +1125,13 @@ gdal2tiles temp.vrt""" % self.input )
 					f.write( self.generate_leaflet() )
 					f.close()
 
+			# Generate index.html
+			if self.options.webviewer in ('all','index'):
+				if not self.options.resume or not os.path.exists(os.path.join(self.output, 'index.html')):
+					f = open(os.path.join(self.output, 'index.html'), 'w')
+					f.write( self.generate_index() )
+					f.close()
+
 		elif self.options.profile == 'geodetic':
 
 			west, south = self.ominx, self.ominy
@@ -2125,6 +2132,68 @@ gdal2tiles temp.vrt""" % self.input )
 
 		return s
 
+	# -------------------------------------------------------------------------
+	def generate_index(self):
+		"""
+		Template for leaflet.html implementing overlay of tiles for 'mercator' profile.
+		It returns filled string. Expected variables:
+		title, north, south, east, west, minzoom, maxzoom, tilesize, tileformat, publishurl
+		"""
+
+		args = {}
+		args['title'] = self.options.title.replace('"', '\\"')
+		args['htmltitle'] = self.options.title
+		args['south'], args['west'], args['north'], args['east'] = self.swne
+		args['centerlat'] = (args['north'] + args['south']) / 2.
+		args['centerlon'] = (args['west'] + args['east']) / 2.
+		args['minzoom'] = self.tminz
+		args['maxzoom'] = self.tmaxz
+		args['beginzoom'] = self.tmaxz
+		args['tilesize'] = self.tilesize  # not used
+		args['tileformat'] = self.tileext
+		args['publishurl'] = self.options.url  # not used
+		args['copyright'] = self.options.copyright.replace('"', '\\"')
+
+		s = """<!DOCTYPE html>
+		<html>
+		  <head>
+		    <title>%(title)s</title>
+		    <meta charset="utf-8"/>
+		    <link rel="stylesheet" href="http://cdn.klokantech.com/tileviewer/v1/index.css" type="text/css"/>
+		    <script src="http://cdn.klokantech.com/tileviewer/v1/index.js"></script>
+		  </head>
+		  <body>
+		    <script type="text/javascript">
+			  // tilejson based on https://github.com/mapbox/tilejson-spec/tree/master/2.1.0
+		      var data = {
+					"tilejson": "2.1.0",
+					"name": "%(title)s",
+					"description": "%(htmltitle)s",
+					"version": "1.0.0",
+					"attribution": "%(copyright)s",
+					"template": "",
+					"legend": "",
+					"scheme": "xyz",
+					"tiles": ["./{z}/{x}/{y}.%(tileformat)s"],
+					"grids": [],
+					"data": [],
+					"type": "overlay",
+					"format": "%(tileformat)s",
+					"center": [%(centerlon)s, %(centerlat)s, %(beginzoom)s],
+					"minzoom": "%(minzoom)s",
+					"maxzoom": "%(maxzoom)s",
+					"bounds": "%(west)s,%(south)s,%(east)s,%(north)s",
+					"scale": "1.000000",
+					"profile": "mercator"
+		      };
+		      tileserver(data);
+		    </script>
+		  </body>
+		</html>
+
+		""" % args
+
+		return s
 
 
 	# -------------------------------------------------------------------------

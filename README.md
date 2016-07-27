@@ -13,6 +13,8 @@ This enhancement to the [gdal2tiles.py script](http://www.gdal.org/gdal2tiles.ht
 Run ``gdal2tilesp.py --help`` to check all the command-line parameters of the script.
 
 ## Notes
+* Generates tilesjson in the file index.html, which then is consumed by [KlokanTech `tileview`](https://github.com/klokantech/cdn.klokantech.com).  
+  * `tileview` further generates Leaflet, OpenLayers 2 & 3, Google Maps, WebGL, OL3-Cesium, Mapbox JS, and ArcGIS for JavaScript.
 * Generates [Leaflet](http://leafletjs.com) layer for use with the XYZ default format.   Where the `tms` parameter is set to `false`
 ```
 var lyr = L.tileLayer('./{z}/{x}/{y}.png', {tms: false, opacity: 1.0, attribution: ""});
