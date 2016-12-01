@@ -68,9 +68,7 @@ resampling_list = ('average','near','bilinear','cubic','cubicspline','lanczos','
 profile_list = ('mercator','geodetic','raster') #,'zoomify')
 webviewer_list = ('all','google','openlayers','leaflet','index','metadata','none')
 queue = multiprocessing.Queue()
-zoom_limits = multiprocessing.Queue()
-
-
+tcount = 0
 # =============================================================================
 # =============================================================================
 # =============================================================================
@@ -207,7 +205,7 @@ class GlobalMercator(object):
 				 AUTHORITY["EPSG","9001"]]]
 	"""
 
-	def __init__(self, tileSize=512):
+	def __init__(self, tileSize=256):
 		"Initialize the TMS Global Mercator pyramid"
 		self.tileSize = tileSize
 		self.initialResolution = 2 * math.pi * 6378137 / self.tileSize
@@ -359,7 +357,7 @@ class GlobalGeodetic(object):
 	   WMS, KML    Web Clients, Google Earth  TileMapService
 	"""
 
-	def __init__(self, tileSize = 512):
+	def __init__(self, tileSize = 256):
 		self.tileSize = tileSize
 
 	def LatLonToPixels(self, lat, lon, zoom):
@@ -422,7 +420,7 @@ class Zoomify(object):
 	----------------------------------------
 	"""
 
-	def __init__(self, width, height, tilesize = 512, tileformat='jpg'):
+	def __init__(self, width, height, tilesize = 256, tileformat='jpg'):
 		"""Initialization of the Zoomify tile tree"""
 
 		self.tilesize = tilesize
@@ -462,7 +460,7 @@ class Zoomify(object):
 		"""Returns filename for tile with given coordinates"""
 
 		tileIndex = x + y * self.tierSizeInTiles[z][0] + self.tileCountUpToTier[z]
-		return os.path.join("TileGroup%.0f" % math.floor( tileIndex / 512 ),
+		return os.path.join("TileGroup%.0f" % math.floor( tileIndex / 256 ),
 			"%s-%s-%s.%s" % ( z, x, y, self.tileformat))
 
 # =============================================================================
@@ -516,8 +514,8 @@ class GDAL2Tiles(object):
 		self.output = None
 
 		# Tile format
-		
-		self.tilesize = 512
+
+		self.tilesize = 256
 
 		# Should we read bigger window of the input raster and scale it down?
 		# Note: Modified leter by open_input()
@@ -542,7 +540,7 @@ class GDAL2Tiles(object):
 			self.error("No input file specified")
 
 		# POSTPROCESSING OF PARSED ARGUMENTS:
-		
+
 		if self.options.output_format == 'JPEG':
 			self.tiledriver = 'JPEG'
 			self.tileext = 'jpg'
@@ -556,7 +554,7 @@ class GDAL2Tiles(object):
 
 		if self.options.output_cache not in ('tms', 'xyz'):
 			self.error("Accepted formats for output cache are 'xyz' or 'tms'")
-		
+
 
 		# Workaround for old versions of GDAL
 		try:
@@ -850,6 +848,7 @@ gdal2tiles temp.vrt""" % self.input )
 					# Correction of AutoCreateWarpedVRT for NODATA values
 					if self.in_nodata != []:
 						fd, tempfilename = tempfile.mkstemp('-gdal2tiles.vrt')
+						fptr = os.fdopen(fd)
 						self.out_ds.GetDriver().CreateCopy(tempfilename, self.out_ds)
 						# open as a text file
 						s = open(tempfilename).read()
@@ -870,6 +869,8 @@ gdal2tiles temp.vrt""" % self.input )
 						# open by GDAL as self.out_ds
 						self.out_ds = gdal.Open(tempfilename) #, gdal.GA_ReadOnly)
 						# delete the temporary file
+						fptr.flush()
+						fptr.close()
 						os.unlink(tempfilename)
 
 						# set NODATA_VALUE metadata
@@ -884,6 +885,7 @@ gdal2tiles temp.vrt""" % self.input )
 					# equivalent of gdalwarp -dstalpha
 					if self.in_nodata == [] and self.out_ds.RasterCount in [1,3]:
 						fd, tempfilename = tempfile.mkstemp('-gdal2tiles.vrt')
+						fptr = os.fdopen(fd)
 						self.out_ds.GetDriver().CreateCopy(tempfilename, self.out_ds)
 						# open as a text file
 						s = open(tempfilename).read()
@@ -901,7 +903,10 @@ gdal2tiles temp.vrt""" % self.input )
 						# open by GDAL as self.out_ds
 						self.out_ds = gdal.Open(tempfilename) #, gdal.GA_ReadOnly)
 						# delete the temporary file
+						fptr.flush()
+						fptr.close()
 						os.unlink(tempfilename)
+						
 
 						if self.options.verbose:
 							print("Modified -dstalpha warping result saved into 'tiles1.vrt'")
@@ -1223,6 +1228,8 @@ gdal2tiles temp.vrt""" % self.input )
 		#print tminx, tminy, tmaxx, tmaxy
 		tcount = (1+abs(tmaxx-tminx)) * (1+abs(tmaxy-tminy))
 		#print tcount
+		
+		
 		ti = 0
 
 		tz = self.tmaxz
@@ -1249,8 +1256,9 @@ gdal2tiles temp.vrt""" % self.input )
 						print("Tile generation skiped because of --resume")
 					else:
 						queue.put(tcount)
+						
 					continue
-
+				
 				# Create directories for the tile
 				if not os.path.exists(os.path.dirname(tilefilename)):
 					os.makedirs(os.path.dirname(tilefilename))
@@ -1354,8 +1362,7 @@ gdal2tiles temp.vrt""" % self.input )
 
 				if not self.options.verbose:
 					queue.put(tcount)
-			
-
+		
 	# -------------------------------------------------------------------------
 	def generate_overview_tiles(self, cpu, tz):
 		"""Generation of the overview tiles (higher in the pyramid) based on existing tiles"""
@@ -1384,7 +1391,7 @@ gdal2tiles temp.vrt""" % self.input )
 				if (ti - 1) % self.options.processes != cpu:
 					continue
 
-				
+
 				if self.options.output_cache == 'xyz':
 					ty_final = (2**tz - 1) - ty
 				else:
@@ -2547,76 +2554,69 @@ def worker_metadata(argv):
 	gdal2tiles = GDAL2Tiles( argv[1:] )
 	gdal2tiles.open_input()
 	gdal2tiles.generate_metadata()
-
+	
 def worker_base_tiles(argv, cpu):
+	
+	
 	gdal2tiles = GDAL2Tiles( argv[1:] )
 	gdal2tiles.open_input()
 	gdal2tiles.generate_base_tiles(cpu)
-
-	# We'll need this information for the overviews generation
-	zoom_limits.put(gdal2tiles.tminz)
-	zoom_limits.put(gdal2tiles.tmaxz)
+	
 
 
 def worker_overview_tiles(argv, cpu, tz):
 	gdal2tiles = GDAL2Tiles( argv[1:] )
 	gdal2tiles.open_input()
 	gdal2tiles.generate_overview_tiles(cpu, tz)
+	
+
+
 
 if __name__=='__main__':
+	
+	
 	argv = gdal.GeneralCmdLineProcessor( sys.argv )
 	if argv:
 		gdal2tiles = GDAL2Tiles( argv[1:] ) # handle command line options
-
 		if gdal2tiles.options.aux_files:
 			gdal.SetConfigOption("GDAL_PAM_ENABLED", "YES")
 		else:
 			gdal.SetConfigOption("GDAL_PAM_ENABLED", "NO")
-
+		
+		
+		
 		p = multiprocessing.Process(target=worker_metadata, args=[argv])
 		p.start()
 		p.join()
 
 		pool = multiprocessing.Pool()
 		processed_tiles = 0
+		
 		print("Generating Base Tiles:")
+		
 		for cpu in range(gdal2tiles.options.processes):
-			pool.apply_async(worker_base_tiles, [argv, cpu])
+			pooli = pool.apply_async(worker_base_tiles, [argv, cpu])
+			#sys.stdout.flush()
 		pool.close()
-		while len(multiprocessing.active_children()) != 0:
-			try:
-				total = queue.get(timeout=1)
-				processed_tiles += 1
-				gdal.TermProgress_nocb(processed_tiles / float(total))
-				sys.stdout.flush()
-			except:
-				pass
-		pool.join()
-
-		processed_tiles = 0
+		pooli.wait()
 
 		print("Generating Overview Tiles:")
 
 		# Values generated after base tiles creation
-		tminz = zoom_limits.get(timeout=1)
-		tmaxz = zoom_limits.get(timeout=1)
+		tminz = gdal2tiles.tminz
+		tmaxz = gdal2tiles.tmaxz
 
 		for tz in range(tmaxz-1, tminz-1, -1):
 			pool = multiprocessing.Pool()
 			for cpu in range(gdal2tiles.options.processes):
-				pool.apply_async(worker_overview_tiles, [argv, cpu, tz])
+				pooli = pool.apply_async(worker_overview_tiles, [argv, cpu, tz])
 			pool.close()
-			while len(multiprocessing.active_children()) != 0:
-				try:
-					total = queue.get(timeout=1)
-					processed_tiles += 1
-					gdal.TermProgress_nocb(processed_tiles / float(total))
-					sys.stdout.flush()
-				except:
-					pass
-			pool.join()
-
-
+			pooli.wait()
+			sys.stdout.flush()
+			
+			
+			
+			
 #############
 # vim:noet
 #############
