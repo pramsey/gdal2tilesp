@@ -41,21 +41,22 @@ import time
 import imp
 import os
 
-if getattr(sys, 'frozen', False):
-	app_path = os.path.dirname(sys.executable)
-	lib_dir = os.path.join(os.path.dirname(sys.executable), 'lib').decode('cp1251').encode('utf-8')
-elif __file__:
-	app_path = os.path.dirname(__file__)
-	lib_dir = os.path.normpath(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'lib'))
-# print 'Lib_dir', lib_dir
+# if getattr(sys, 'frozen', False):
+	# app_path = os.path.dirname(sys.executable)
+	# lib_dir = os.path.join(os.path.dirname(sys.executable), 'lib').decode('cp1251').encode('utf-8')
+# elif __file__:
+	# app_path = os.path.dirname(__file__)
+	# lib_dir = os.path.normpath(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'lib'))
+# # print 'Lib_dir', lib_dir
 
-environ_list = os.environ['PATH'].split(';')
-environ_list.insert(0, os.path.join(lib_dir, 'GDAL'))
-environ_list.insert(0, os.path.join(os.getcwd(), 'lib/Python27/Scripts'))
-environ_list.insert(0, os.path.join(os.getcwd(), 'lib/Python27'))
-os.environ['PATH'] = ';'.join(environ_list)
-os.environ['GDAL_DRIVER_PATH'] = os.path.join(lib_dir, '/GDAL', 'gdalplugins')
-os.environ['GDAL_DATA'] = os.path.join(lib_dir, '/GDAL', 'gdal-data')
+# environ_list = os.environ['PATH'].split(';')
+# environ_list.insert(0, os.path.join(lib_dir, 'GDAL'))
+# environ_list.insert(0, os.path.join(os.getcwd(), 'lib/Python27/Scripts'))
+# environ_list.insert(0, os.path.join(os.getcwd(), 'lib/Python27'))
+# os.environ['PATH'] = ';'.join(environ_list)
+# os.environ['GDAL_DRIVER_PATH'] = os.path.join(lib_dir, '/GDAL', 'gdalplugins')
+# os.environ['GDAL_DATA'] = os.path.join(lib_dir, '/GDAL', 'gdal-data')
+
 
 try:
 	from osgeo import gdal
@@ -79,10 +80,6 @@ except:
 
 import multiprocessing
 import traceback
-from multiprocessing.pool import ThreadPool
-
-queue = multiprocessing.Queue()
-
 import tempfile
 from optparse import OptionParser, OptionGroup
 
@@ -92,6 +89,7 @@ resampling_list = ('average', 'near', 'bilinear', 'cubic', 'cubicspline', 'lancz
 profile_list = ('mercator', 'geodetic', 'raster')  # ,'zoomify')
 webviewer_list = ('all', 'google', 'openlayers', 'leaflet', 'index', 'metadata', 'none')
 
+queue = multiprocessing.Queue()
 tcount = 0
 # =============================================================================
 # =============================================================================
@@ -465,6 +463,7 @@ class Zoomify(object):
 		self.tierImageSize = []
 		self.tierImageSize.append(imagesize);
 
+
 		while (imagesize[0] > tilesize or imageSize[1] > tilesize):
 			imagesize = (math.floor(imagesize[0] / 2), math.floor(imagesize[1] / 2))
 			tiles = (math.ceil(imagesize[0] / tilesize), math.ceil(imagesize[1] / tilesize))
@@ -482,8 +481,7 @@ class Zoomify(object):
 		self.tileCountUpToTier[0] = 0
 		for i in range(1, self.numberOfTiers + 1):
 			self.tileCountUpToTier.append(
-					self.tierSizeInTiles[i - 1][0] * self.tierSizeInTiles[i - 1][1] + self.tileCountUpToTier[i - 1]
-			)
+				self.tierSizeInTiles[i - 1][0] * self.tierSizeInTiles[i - 1][1] + self.tileCountUpToTier[i - 1])
 
 	def tilefilename(self, x, y, z):
 		"""Returns filename for tile with given coordinates"""
@@ -693,7 +691,7 @@ class GDAL2Tiles(object):
 		p = OptionParser(usage, version="%prog " + __version__)
 		p.add_option("-p", "--profile", dest='profile', type='choice', choices=profile_list,
 					 help="Tile cutting profile (%s) - default 'mercator' (Google Maps compatible)" % ",".join(
-							 profile_list))
+						 profile_list))
 		p.add_option("-r", "--resampling", dest="resampling", type='choice', choices=resampling_list,
 					 help="Resampling method (%s) - default 'average'" % ",".join(resampling_list))
 		p.add_option('-s', '--s_srs', dest="s_srs", metavar="SRS",
@@ -868,7 +866,6 @@ class GDAL2Tiles(object):
 				self.error(
 						"There is no georeference - neither affine transformation (worldfile) nor GCPs. You can generate only 'raster' profile tiles.",
 						"Either gdal2tiles with parameter -p 'raster' or use another GIS software for georeference e.g. gdal_transform -gcp / -a_ullr / -a_srs")
-
 			if self.in_srs:
 
 				if (self.in_srs.ExportToProj4() != self.out_srs.ExportToProj4()) or (self.in_ds.GetGCPCount() != 0):
@@ -1051,7 +1048,6 @@ class GDAL2Tiles(object):
 			if self.tminz == None:
 				self.tminz = self.mercator.ZoomForPixelSize(
 						self.out_gt[1] * max(self.out_ds.RasterXSize, self.out_ds.RasterYSize) / float(self.tilesize))
-
 			# Get the maximal zoom level (closest possible zoom level up on the resolution of raster)
 			if self.tmaxz == None:
 				self.tmaxz = self.mercator.ZoomForPixelSize(self.out_gt[1])
@@ -1085,7 +1081,6 @@ class GDAL2Tiles(object):
 			if self.tminz == None:
 				self.tminz = self.geodetic.ZoomForPixelSize(
 						self.out_gt[1] * max(self.out_ds.RasterXSize, self.out_ds.RasterYSize) / float(self.tilesize))
-
 			# Get the maximal zoom level (closest possible zoom level up on the resolution of raster)
 			if self.tmaxz == None:
 				self.tmaxz = self.geodetic.ZoomForPixelSize(self.out_gt[1])
@@ -1096,7 +1091,6 @@ class GDAL2Tiles(object):
 		if self.options.profile == 'raster':
 
 			log2 = lambda x: math.log10(x) / math.log10(2)	# log2 (base 2 logarithm)
-
 			self.nativezoom = int(max(math.ceil(log2(self.out_ds.RasterXSize / float(self.tilesize))),
 									  math.ceil(log2(self.out_ds.RasterYSize / float(self.tilesize)))))
 
@@ -1302,7 +1296,7 @@ class GDAL2Tiles(object):
 				# my addons
 				tilefilename = os.path.join(self.output, str(tz), str(tx), "%s.%s" % (ty_final, self.tileext))
 				if os.path.exists(os.path.abspath(tilefilename)):
-					# print 'already exsist'
+					# already exist
 					continue
 				if self.options.verbose:
 					print(ti, '/', tcount, tilefilename)  # , "( TileMapService: z / x / y )"
@@ -1312,7 +1306,6 @@ class GDAL2Tiles(object):
 						print("Tile generation skiped because of --resume")
 					else:
 						queue.put(tcount)
-
 					continue
 				# print queue.qsize()
 				# Create directories for the tile
@@ -1458,7 +1451,7 @@ class GDAL2Tiles(object):
 				# My addition if
 				tilefilename = os.path.join(self.output, str(tz), str(tx), "%s.%s" % (ty_final, self.tileext))
 				if os.path.exists(os.path.abspath(tilefilename)):
-					# print 'overview til already exsist'
+					# print 'overview tile already exsist'
 					continue
 				if self.options.verbose:
 					print(ti, '/', tcount, tilefilename)  # , "( TileMapService: z / x / y )"
@@ -1529,7 +1522,7 @@ class GDAL2Tiles(object):
 					try:
 						self.out_drv.CreateCopy(tilefilename, dstile, strict=0)
 					except:
-						# print 'Ne mogu copy'
+						# can't copy
 						continue
 
 				# strict = 0
@@ -1791,7 +1784,7 @@ class GDAL2Tiles(object):
 		</NetworkLink>
 	""" % (cz, cx, cy, args['tileformat'], args['minlodpixels'], cnorth, csouth, ceast, cwest, url, cz, cx, cy)
 
-		s += """	  </Document>
+		s += """      </Document>
 	</kml>
 	"""
 		return s
@@ -2642,7 +2635,7 @@ def worker_base_tiles(argv, cpu, queue):
 		gdal2tiles.open_input()
 		gdal2tiles.generate_base_tiles(cpu, queue)
 	except:
-		print 'exception error: ', traceback.format_exc()
+		print ('exception error: ', traceback.format_exc())
 
 
 def worker_overview_tiles(argv, cpu, tz, queue):
@@ -2651,9 +2644,8 @@ def worker_overview_tiles(argv, cpu, tz, queue):
 		gdal2tiles.open_input()
 		gdal2tiles.generate_overview_tiles(cpu, tz, queue)
 	except RuntimeError:
-		print 'Something Wrong: ', traceback.format_exc()
+		print ('Something Wrong: ', traceback.format_exc())
 		pass
-
 
 
 if __name__ == '__main__':
@@ -2672,9 +2664,6 @@ if __name__ == '__main__':
 		p.start()
 		p.join()
 
-
-
-
 		print("Generating Base Tiles:")
 
 		procs = []
@@ -2685,7 +2674,7 @@ if __name__ == '__main__':
 			procs.append(proc)
 		processed_tiles = 0
 		total = queue.get(timeout=1)
-		while (total-processed_tiles):
+		while (total - processed_tiles):
 			try:
 				total = queue.get_nowait()
 				processed_tiles += 1
@@ -2721,6 +2710,6 @@ if __name__ == '__main__':
 				except:
 					pass
 			[p.join(timeout=1) for p in procs]
-			#############
-			# vim:noet
-			#############
+#############
+# vim:noet
+#############
