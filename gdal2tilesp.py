@@ -1015,7 +1015,7 @@ class GDAL2Tiles(object):
 		self.ominx = self.out_gt[0]
 		self.omaxx = self.out_gt[0] + self.out_ds.RasterXSize * self.out_gt[1]
 		self.omaxy = self.out_gt[3]
-		self.ominy = self.out_gt[3] - self.out_ds.RasterYSize * self.out_gt[1]
+		self.ominy = self.out_gt[3] + self.out_ds.RasterYSize * self.out_gt[5]
 		# Note: maybe round(x, 14) to avoid the gdal_translate behaviour, when 0 becomes -1e-15
 
 		if self.options.verbose:
