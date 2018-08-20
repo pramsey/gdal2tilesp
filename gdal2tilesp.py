@@ -2651,7 +2651,6 @@ def worker_overview_tiles(argv, cpu, tz, queue):
 if __name__ == '__main__':
 	queue = multiprocessing.Queue()
 	argv = gdal.GeneralCmdLineProcessor(sys.argv)
-	proc_count = multiprocessing.cpu_count()
 
 	if argv:
 		gdal2tiles = GDAL2Tiles(argv[1:])  # handle command line options
@@ -2666,6 +2665,7 @@ if __name__ == '__main__':
 
 		print("Generating Base Tiles:")
 
+		proc_count = gdal2tiles.options.processes
 		procs = []
 		for cpu in range(proc_count):
 			proc = multiprocessing.Process(target=worker_base_tiles, args=(argv, cpu % proc_count, queue))
