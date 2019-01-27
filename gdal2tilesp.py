@@ -575,9 +575,13 @@ class GDAL2Tiles(object):
 		elif self.options.output_format == 'PNG':
 			self.tiledriver = 'PNG'
 			self.tileext = 'png'
+			
+		elif self.options.output_format == 'WEBP':
+			self.tiledriver = 'WEBP'
+			self.tileext = 'webp'
 
 		else:
-			self.error("Output formats allowed are PNG and JPEG")
+			self.error("Output formats allowed are WEBP, PNG and JPEG")
 
 		if self.options.output_cache not in ('tms', 'xyz'):
 			self.error("Accepted formats for output cache are 'xyz' or 'tms'")
@@ -737,7 +741,7 @@ class GDAL2Tiles(object):
 		g.add_option("-x", "--auxfiles", dest='aux_files', action='store_true',
 					 help="Generate aux.xml files.")
 		g.add_option("-f", "--format", dest="output_format",
-					 help="Image format for output tiles. Just PNG and JPEG allowed. PNG is selected by default")
+					 help="Image format for output tiles. Just WEBP, PNG and JPEG allowed. PNG is selected by default")
 		g.add_option("-o", "--output", dest="output_cache",
 					 help="Format for output cache. Values allowed are tms and xyz, being xyz the default value")
 		p.add_option_group(g)
@@ -1509,9 +1513,26 @@ class GDAL2Tiles(object):
 								tileposx = self.tilesize
 							else:
 								tileposx = 0
-							dsquery.WriteRaster(tileposx, tileposy, self.tilesize, self.tilesize,
-												dsquerytile.ReadRaster(0, 0, self.tilesize, self.tilesize),
-												band_list=list(range(1, tilebands + 1)))
+							#WEBP tiles with zero alpha areas do not contain a alpha band.  We need to add one here and make it fully opaque  It will be saved again with no alpha channel for next zoom level by the libwepb driver if it contains no transparent areas 
+							if dsquerytile.RasterCount == 3 and tilebands == 4:
+								alpha = numpy.full((self.tilesize, self.tilesize),255, dtype=numpy.uint8)
+								tmp_ds = self.mem_drv.Create('', self.tilesize, self.tilesize, tilebands)
+								tmp_ds.GetRasterBand(1).SetColorInterpretation(gdal.GCI_RedBand)
+								tmp_ds.GetRasterBand(2).SetColorInterpretation(gdal.GCI_GreenBand)
+								tmp_ds.GetRasterBand(3).SetColorInterpretation(gdal.GCI_BlueBand)
+								tmp_ds.GetRasterBand(4).SetColorInterpretation(gdal.GCI_AlphaBand)
+								tmp_ds.GetRasterBand(1).WriteArray(dsquerytile.GetRasterBand(1).ReadAsArray())
+								tmp_ds.GetRasterBand(2).WriteArray(dsquerytile.GetRasterBand(2).ReadAsArray())
+								tmp_ds.GetRasterBand(3).WriteArray(dsquerytile.GetRasterBand(3).ReadAsArray())
+								tmp_ds.GetRasterBand(4).WriteArray(alpha)
+
+								dsquery.WriteRaster( tileposx, tileposy, self.tilesize, self.tilesize,
+												tmp_ds.ReadRaster(0,0,self.tilesize,self.tilesize),
+												band_list=list(range(1,tilebands+1)))
+							else :
+								dsquery.WriteRaster( tileposx, tileposy, self.tilesize, self.tilesize,
+												dsquerytile.ReadRaster(0,0,self.tilesize,self.tilesize),
+												band_list=list(range(1,tilebands+1)))
 							children.append([x, y, tz + 1])
 
 				self.scale_query_to_tile(dsquery, dstile, tilefilename)
@@ -2687,7 +2708,7 @@ if __name__ == '__main__':
 
 		print("\n")
 		print("Generating Overview Tiles:")
-		#  Values generated after base tiles creation
+		#  Values generated after base tiles creation
 		tminz = gdal2tiles.tminz
 		tmaxz = gdal2tiles.tmaxz
 
