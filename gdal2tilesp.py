@@ -1173,9 +1173,13 @@ class GDAL2Tiles(object):
 
 			# Generate leaflet.html
 			if self.options.webviewer in ('all', 'leaflet'):
-				if not self.options.resume or not os.path.exists(os.path.join(self.output, 'leaflet.html')):
-					f = open(os.path.join(self.output, 'leaflet.html'), 'w')
+				if not self.options.resume or not os.path.exists(os.path.join(self.output, 'leaflet-2008.html')):
+					f = open(os.path.join(self.output, 'leaflet-2008.html'), 'w')
 					f.write(self.generate_leaflet())
+					f.close()
+				if not self.options.resume or not os.path.exists(os.path.join(self.output, 'leaflet-2021.html')):
+					f = open(os.path.join(self.output, 'leaflet-2021.html'), 'w')
+					f.write(self.generate_leaflet2021())
 					f.close()
 
 			# Generate index.html
@@ -2239,6 +2243,85 @@ class GDAL2Tiles(object):
 
 		return s
 
+	# -------------------------------------------------------------------------
+	def generate_leaflet2021(self):
+		"""
+		Template for leaflet-2021.html implementing overlay of tiles for 'mercator' profile.
+		Uses Leaflet and Leaflet.MousePosition
+		"""
+
+		args = {}
+		args['title'] = self.options.title.replace('"', '\\"')
+		args['htmltitle'] = self.options.title
+		args['south'], args['west'], args['north'], args['east'] = self.swne
+		args['centerlon'] = (args['north'] + args['south']) / 2.
+		args['centerlat'] = (args['west'] + args['east']) / 2.
+		args['minzoom'] = self.tminz
+		args['maxzoom'] = self.tmaxz
+		args['tilesize'] = self.tilesize  # not used
+		args['tileformat'] = self.tileext
+		args['publishurl'] = self.options.url  # not used
+		args['copyright'] = self.options.copyright.replace('"', '\\"')
+		args['onehundred'] = "100%" # workaround for formatting `%` in Python 3
+		args['background'] = "#ffffff" # workaround for formatting `#` in Python 3
+
+		# print args # DEBUG
+
+		s = """<!DOCTYPE html>
+<html lang="en">
+	<head>
+	<meta charset="utf-8">
+	<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+	<title>%(htmltitle)s</title>
+	<meta http-equiv="imagetoolbar" content="no">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css">
+	<link rel="stylesheet" href="https://cdn.rawgit.com/ardhi/Leaflet.MousePosition/master/src/L.Control.MousePosition.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js" type="text/javascript"></script>
+	<script src="https://cdn.rawgit.com/ardhi/Leaflet.MousePosition/master/src/L.Control.MousePosition.js" type="text/javascript"></script>
+	<style>
+		body { margin:0; padding:0; width:%(onehundred)s; height:%(onehundred)s; background: %(background)s; }
+		#map { position:absolute; top:0; bottom:0; width:%(onehundred)s; z-index: 1; }
+		#slider{ position: absolute; top: 10px; right: 10px; z-index: 5; }
+	</style>
+</head>
+<body>
+	<div id="map"></div>
+	<input id="slider" type="range" min="0" max="1" step="0.1" value="1" oninput="layer.setOpacity(this.value)">
+	<script type="text/javascript">
+		// compute bounds
+		var mapExtent = [%(south)s, %(east)s, %(north)s, %(west)s];
+		var bounds = new L.LatLngBounds(
+			new L.LatLng(mapExtent[1], mapExtent[0]),
+			new L.LatLng(mapExtent[3], mapExtent[2])
+			);
+	    var map = L.map('map').fitBounds(bounds);
+
+		// Add an OpenStreetMap base layer
+	    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+		// https://leafletjs.com/reference-1.7.1.html#map-option
+	    var options = {
+		  center: [%(centerlon)s, %(centerlat)s],
+		  zoom: %(minzoom)s,
+	      minZoom: %(minzoom)s,
+	      maxZoom: %(maxzoom)s,
+	      opacity: 1.0,
+	      attribution: '"%(copyright)s" | Rendered with <a href="https://github.com/roblabs/gdal2tilesp">gdal2tilesp</a>',
+	      tms: false
+	    };
+
+		// Add our tiles
+	    var layer = L.tileLayer('./{z}/{x}/{y}.%(tileformat)s', options).addTo(map);
+	</script>
+</body>
+</html>
+
+		""" % args
+		# print s # DEBUG
+
+		return s
 	# -------------------------------------------------------------------------
 	def generate_index(self):
 		"""

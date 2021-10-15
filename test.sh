@@ -15,4 +15,10 @@ cd $OUTPUT
 open http://localhost:5000/index.html
 open http://localhost:5000/googlemaps.html
 open http://localhost:5000/leaflet.html
+open http://localhost:5000/leaflet-2008.html
+open http://localhost:5000/leaflet-2021.html
 open http://localhost:5000/openlayers.html
+
+
+# quick test
+# rm -rf $OUTPUT && docker run --rm -v $(pwd):/data roblabs/gdal ./gdal2tilesp.py -z 1-3 -w all $INPUT
