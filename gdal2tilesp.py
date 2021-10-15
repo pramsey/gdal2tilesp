@@ -2266,8 +2266,8 @@ class GDAL2Tiles(object):
 		  <head>
 			<title>%(title)s</title>
 			<meta charset="utf-8"/>
-			<link rel="stylesheet" href="http://cdn.klokantech.com/tileviewer/v1/index.css" type="text/css"/>
-			<script src="http://cdn.klokantech.com/tileviewer/v1/index.js"></script>
+			<link rel="stylesheet" href="https://cdn.klokantech.com/tileviewer/v1/index.css" type="text/css"/>
+			<script src="https://cdn.klokantech.com/tileviewer/v1/index.js"></script>
 		  </head>
 		  <body>
 			<script type="text/javascript">
