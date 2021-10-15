@@ -9,7 +9,19 @@ This enhancement to the [gdal2tiles.py script](http://www.gdal.org/gdal2tiles.ht
 * Parallel processing, to use all available machine cores when generating tiles. This speeds up tile creation considerably.
 * Support for both the [TMS](http://wiki.osgeo.org/wiki/Tile_Map_Service_Specification) and [XYZ](http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames) tile cache formats. Use the -o flag to choose; XYZ is the default format.
 * Support for both PNG and JPEG tile outputs. Use the -f flag to choose; PNG is the default format.
- 
+
+## Install
+
+```bash
+#
+#python3 -m ensurepip
+
+# install from local directory
+pip install .
+# Successfully installed gdal2tilesp.py-3.14.15926
+```
+
+## Command Line
 Run ``gdal2tilesp.py --help`` to check all the command-line parameters of the script.
 
 ```bash
