@@ -1182,6 +1182,13 @@ class GDAL2Tiles(object):
 					f.write(self.generate_leaflet2021())
 					f.close()
 
+			# Generate mapkitjs.html
+			if self.options.webviewer in ('all', 'mapkitjs'):
+				if not self.options.resume or not os.path.exists(os.path.join(self.output, 'mapkitjs.html')):
+					f = open(os.path.join(self.output, 'mapkitjs.html'), 'w')
+					f.write(self.generate_mapkitjs())
+					f.close()
+
 			# Generate index.html
 			if self.options.webviewer in ('all', 'index'):
 				if not self.options.resume or not os.path.exists(os.path.join(self.output, 'index.html')):
@@ -2721,6 +2728,150 @@ class GDAL2Tiles(object):
 
 		return s
 
+	# -------------------------------------------------------------------------
+	def generate_mapkitjs(self):
+		"""
+		Template for mapkitjs.html implementing overlay of tiles for 'mercator' profile.
+		Uses Apple MapKit
+		"""
+
+		args = {}
+		args['title'] = self.options.title.replace('"', '\\"')
+		args['htmltitle'] = self.options.title
+		args['south'], args['west'], args['north'], args['east'] = self.swne
+		args['centerlon'] = (args['north'] + args['south']) / 2.
+		args['centerlat'] = (args['west'] + args['east']) / 2.
+		args['minzoom'] = self.tminz
+		args['maxzoom'] = self.tmaxz
+		args['tilesize'] = self.tilesize  # not used
+		args['tileformat'] = self.tileext
+		args['publishurl'] = self.options.url  # not used
+		args['copyright'] = self.options.copyright.replace('"', '\\"')
+		args['percent'] = "%" # workaround for formatting `%` in Python 3
+		args['hash'] = "#" # workaround for formatting `#` in Python 3
+
+		# print args # DEBUG
+
+		s = """<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="utf-8">
+
+<script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"></script>
+
+<style>
+%(hash)smap {
+    height: 600px;
+}
+
+%(hash)sslider{ position: absolute; top: 17px; right: 77px; z-index: 5; }
+
+a:link, a:visited {
+    color: %(hash)s2aaef5;
+    outline: none;
+    text-decoration: none;
+}
+
+@-webkit-keyframes scale-and-fadein {
+    0%(percent)s {
+        -webkit-transform: scale(0.2);
+        opacity: 0;
+    }
+
+    100%(percent)s {
+        -webkit-transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes scale-and-fadein {
+    0%(percent)s  {
+        transform: scale(0.2);
+        opacity: 0;
+    }
+
+    100%(percent)s  {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+</style>
+
+</head>
+
+<body>
+<div id="map"></div>
+<input id="slider" type="range" min="0" max="1" step="0.1" value="1" oninput="customOverlay.opacity=parseFloat(this.value)">
+
+<script>
+mapkit.init({
+    authorizationCallback: function(done) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "/services/jwt");
+        xhr.addEventListener("load", function() {
+            done(this.responseText);
+        });
+        xhr.send();
+    }
+});
+
+var map = new mapkit.Map("map");
+
+// compute bounds for map extent by West, South, East,
+var wsen = [%(west)s, %(south)s, %(east)s, %(north)s];
+var centerLatitude  = wsen[1] + (wsen[3] - wsen[1]) / 2;
+var centerLongitude = wsen[0] + (wsen[2] - wsen[0]) / 2;
+var latitudeDelta   = wsen[3] - wsen[1];
+var longitudeDelta  = wsen[2] - wsen[0];
+
+var region = new mapkit.CoordinateRegion(
+    new mapkit.Coordinate(centerLatitude, centerLongitude),
+    new mapkit.CoordinateSpan(latitudeDelta, longitudeDelta)
+);
+
+console.log("computed center = ");
+console.log(region.center);
+console.log("computed span = ");
+console.log(region.span);
+map.region = region;
+
+// https://developer.apple.com/documentation/mapkitjs/mapkit/tileoverlay/2974035-mapkit_tileoverlay
+var customOverlay = new mapkit.TileOverlay("./{z}/{x}/{y}.%(tileformat)s");
+
+// https://developer.apple.com/documentation/mapkitjs/tileoverlayconstructoroptions
+customOverlay.minimumZ = %(minzoom)s;
+customOverlay.maximumZ = %(maxzoom)s;
+customOverlay.opacity = 1.0;
+customOverlay.data = {
+    lang: mapkit.language
+};
+
+map.addTileOverlay(customOverlay);
+
+// https://developer.apple.com/documentation/mapkitjs/mapkit/map/handling_map_events
+map.addEventListener("configuration-change", function(event) {console.log(event.status);});
+map.addEventListener("map-type-change", function(event)      {console.log(event.target.mapType);});
+map.addEventListener("region-change-end", function(event)    {
+
+  console.log(`CameraZoomRange (min, distance, max) = ${mapkit.maps[0].cameraZoomRange._minCameraDistance}, ${mapkit.maps[0].cameraDistance.toFixed(3)}, ${mapkit.maps[0].cameraZoomRange._maxCameraDistance}`);
+
+  // test if CameraZoomRange has default values
+  if(mapkit.maps[0].cameraZoomRange._minCameraDistance === 0) {
+    // The minimum & maximum allowed distance of the camera from the center of the map in meters.
+	var minimumCameraZoom = Math.pow(2, (%(minzoom)s + 1)); // `+1` — Don't allow zoom in beyond the overlay raster data
+	var maximumCameraZoom = Math.pow(2, %(maxzoom)s);
+	map.cameraZoomRange = new mapkit.CameraZoomRange(minimumCameraZoom, maximumCameraZoom);
+  }
+});
+</script>
+</body>
+</html>
+
+		""" % args
+		# print s # DEBUG
+
+		return s
 
 # =============================================================================
 # =============================================================================
