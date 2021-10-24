@@ -228,7 +228,7 @@ class GlobalMercator(object):
 				 AUTHORITY["EPSG","9001"]]]
 	"""
 
-	def __init__(self, tileSize=256):
+	def __init__(self, tileSize=512):
 		"Initialize the TMS Global Mercator pyramid"
 		self.tileSize = tileSize
 		self.initialResolution = 2 * math.pi * 6378137 / self.tileSize
@@ -382,7 +382,7 @@ class GlobalGeodetic(object):
 	   WMS, KML	   Web Clients, Google Earth  TileMapService
 	"""
 
-	def __init__(self, tileSize=256):
+	def __init__(self, tileSize=512):
 		self.tileSize = tileSize
 
 	def LatLonToPixels(self, lat, lon, zoom):
@@ -447,7 +447,7 @@ class Zoomify(object):
 	----------------------------------------
 	"""
 
-	def __init__(self, width, height, tilesize=256, tileformat='jpg'):
+	def __init__(self, width, height, tilesize=512, tileformat='jpg'):
 		"""Initialization of the Zoomify tile tree"""
 
 		self.tilesize = tilesize
@@ -487,7 +487,7 @@ class Zoomify(object):
 		"""Returns filename for tile with given coordinates"""
 
 		tileIndex = x + y * self.tierSizeInTiles[z][0] + self.tileCountUpToTier[z]
-		return os.path.join("TileGroup%.0f" % math.floor(tileIndex / 256),
+		return os.path.join("TileGroup%.0f" % math.floor(tileIndex / 512),
 							"%s-%s-%s.%s" % (z, x, y, self.tileformat))
 
 
@@ -542,7 +542,7 @@ class GDAL2Tiles(object):
 
 		# Tile format
 
-		self.tilesize = 256
+		self.tilesize = 512
 
 		# Should we read bigger window of the input raster and scale it down?
 		# Note: Modified leter by open_input()
@@ -2300,8 +2300,8 @@ class GDAL2Tiles(object):
 		// compute bounds
 		var mapExtent = [%(south)s, %(east)s, %(north)s, %(west)s];
 		var bounds = new L.LatLngBounds(
-			new L.LatLng(mapExtent[1], mapExtent[0]),
-			new L.LatLng(mapExtent[3], mapExtent[2])
+			new L.LatLng(mapExtent[0], mapExtent[1]),
+			new L.LatLng(mapExtent[2], mapExtent[3])
 			);
 	    var map = L.map('map').fitBounds(bounds);
 
@@ -2424,6 +2424,7 @@ class GDAL2Tiles(object):
 	"format": "%(tileformat)s",
 	"minzoom": "%(minzoom)s",
 	"maxzoom": "%(maxzoom)s",
+	"center": "%(centerlon)s,%(centerlat)s,%(minzoom)s",
 	"bounds": "%(west)s,%(south)s,%(east)s,%(north)s",
 	"scale": "1",
 	"profile": "mercator"
@@ -2762,7 +2763,7 @@ class GDAL2Tiles(object):
 
 <style>
 %(hash)smap {
-    height: 600px;
+    height: 600px; /* width: 600px; */
 }
 
 %(hash)sslider{ position: absolute; top: 17px; right: 77px; z-index: 5; }
@@ -2849,17 +2850,22 @@ customOverlay.data = {
 
 map.addTileOverlay(customOverlay);
 
+// ------
+function computeZoom(cameraDistance) {
+  return 25 - Math.floor( Math.log2(cameraDistance) );
+}
+
 // https://developer.apple.com/documentation/mapkitjs/mapkit/map/handling_map_events
 map.addEventListener("configuration-change", function(event) {console.log(event.status);});
 map.addEventListener("map-type-change", function(event)      {console.log(event.target.mapType);});
 map.addEventListener("region-change-end", function(event)    {
 
-  console.log(`CameraZoomRange (min, distance, max) = ${mapkit.maps[0].cameraZoomRange._minCameraDistance}, ${mapkit.maps[0].cameraDistance.toFixed(3)}, ${mapkit.maps[0].cameraZoomRange._maxCameraDistance}`);
+  console.log(`📷 CameraZoomRange (min, distance, max) - 🔎 ZoomRange = 📷 (${mapkit.maps[0].cameraZoomRange._minCameraDistance}, ${mapkit.maps[0].cameraDistance.toFixed(3)}, ${mapkit.maps[0].cameraZoomRange._maxCameraDistance}) - 🔎 (${computeZoom(mapkit.maps[0].cameraZoomRange._maxCameraDistance)}, ${computeZoom(mapkit.maps[0].cameraDistance)}, ${computeZoom(mapkit.maps[0].cameraZoomRange._minCameraDistance)})`);
 
   // test if CameraZoomRange has default values
   if(mapkit.maps[0].cameraZoomRange._minCameraDistance === 0) {
     // The minimum & maximum allowed distance of the camera from the center of the map in meters.
-	var minimumCameraZoom = Math.pow(2, (%(minzoom)s + 1)); // `+1` — Don't allow zoom in beyond the overlay raster data
+	var minimumCameraZoom = Math.pow(2, %(minzoom)s);
 	var maximumCameraZoom = Math.pow(2, %(maxzoom)s);
 	map.cameraZoomRange = new mapkit.CameraZoomRange(minimumCameraZoom, maximumCameraZoom);
   }
