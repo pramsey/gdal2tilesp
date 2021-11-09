@@ -1,0 +1,5 @@
+# ignore files generated from `test.sh`
+USA_IFR_Low_Alaska_RESIZE/
+
+build/
+gdal2tilesp.py.egg-info/
