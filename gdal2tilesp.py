@@ -2287,6 +2287,7 @@ class GDAL2Tiles(object):
 	<link rel="stylesheet" href="https://cdn.rawgit.com/ardhi/Leaflet.MousePosition/master/src/L.Control.MousePosition.css">
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js" type="text/javascript"></script>
 	<script src="https://cdn.rawgit.com/ardhi/Leaflet.MousePosition/master/src/L.Control.MousePosition.js" type="text/javascript"></script>
+	<script src="https://cdn.jsdelivr.net/npm/leaflet-hash@0.2.1/leaflet-hash.min.js" type="text/javascript"></script>
 	<style>
 		body { margin:0; padding:0; width:%(onehundred)s; height:%(onehundred)s; background: %(background)s; }
 		#map { position:absolute; top:0; bottom:0; width:%(onehundred)s; z-index: 1; }
@@ -2304,6 +2305,7 @@ class GDAL2Tiles(object):
 			new L.LatLng(mapExtent[2], mapExtent[3])
 			);
 	    var map = L.map('map').fitBounds(bounds);
+		var hash = new L.Hash(map);
 
 		// Add an OpenStreetMap base layer
 	    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
