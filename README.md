@@ -21,6 +21,10 @@ pip install .
 # Successfully installed gdal2tilesp.py-3.14.15926
 ```
 
+### Docker
+
+The project [roblabs/gdal-geopdf](https://github.com/roblabs/gdal-geopdf/blob/usgs/Dockerfile) makes use of this Python script in a Dockerfile.
+
 ## Command Line
 Run ``gdal2tilesp.py --help`` to check all the command-line parameters of the script.
 
@@ -98,4 +102,3 @@ var lyr = L.tileLayer('./{z}/{x}/{y}.png', {tms: false, opacity: 1.0, attributio
 # Caveats
 
 * The ``epsg::900913`` projection code is not supported, use ``epsg:3857`` to generate a tile set in web mercator projection.
-
